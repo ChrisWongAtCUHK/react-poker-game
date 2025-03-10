@@ -323,8 +323,9 @@ function App() {
       setSelected(() => [])
       setGameState(() => gameState)
       playHand()
+
       if (hand.length) {
-        const elems = this.cards.map(
+        const elems = cards.map(
           (card) => cardsRef.current[`${card.card[0]}-${card.card[1]}`]
         )
         gsap.killTweensOf(elems)
@@ -334,6 +335,24 @@ function App() {
           onComplete: () => {
             const tmpDead = [...dead, ...hand]
             const newDeck = shuffleDeck([...deck, ...tmpDead])
+
+            const elems = cards.map(
+              (card) => cardsRef.current[`${card.card[0]}-${card.card[1]}`]
+            )
+            const timeline = new TimelineLite({
+              onComplete: () => {
+                if (
+                  gameState === gameStates.SWAPPING ||
+                  gameState === gameStates.DEALING
+                ) {
+                  setCards(() => [])
+                  dealCard([], [], [...newDeck], gameState)
+                }
+              },
+            })
+            timeline
+              .to(elems, 0.2, { rotateY: 180 })
+              .to(elems, 0.2, { x: 1180, delay: 0.1 })
 
             setDead(() => [])
             setDeck(() => newDeck)
