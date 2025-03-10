@@ -118,7 +118,7 @@ function App() {
               return
             }
             if (gameState === gameStates.SWAPPING) {
-              // finalizeHand()
+              finalizeHand()
             }
           },
         })
@@ -148,6 +148,181 @@ function App() {
     setCards(() => [...newCards])
   }
 
+  function finalize() {
+    const update = (payLine) => {
+      const winnings = payTable.find((p) => p.id === payLine).multiplier * bet
+      setPayLine(() => payLine)
+      setWinnings(() => winnings)
+      setCredits((pre) => pre + winnings)
+    }
+
+    const suits = hand.map((c) => c[1])
+    const faces = hand.map((c) => c[0])
+
+    // flush
+    const hasFlush = suits.every((val, i, arr) => val === arr[0])
+
+    // straight
+    faces.sort((a, b) => a - b)
+    let hasStraight = faces.every(
+      (val, i, arr) => i === arr.length - 1 || val + 1 === arr[i + 1]
+    )
+    if (!hasStraight && !faces[0]) {
+      let i = 1
+      while (i < 5) {
+        if (faces[i] !== i + 8) {
+          break
+        }
+        i++
+      }
+
+      hasStraight = i === 5
+    }
+
+    // straight flush
+    const hasStraightFlush = hasFlush && hasStraight
+
+    // royal flush
+    const hasRoyalFlush = hasStraightFlush && faces[4] === 12 && faces[0] === 0
+    if (hasRoyalFlush) {
+      update(payLines.ROYAL_FLUSH)
+      return
+    }
+
+    if (hasStraightFlush) {
+      update(payLines.STRAIGHT_FLUSH)
+      return
+    }
+
+    // 4 of a kind
+    const hasFourOfAKind = faces[0] === faces[3] || faces[1] === faces[4]
+    if (hasFourOfAKind) {
+      update(payLines.FOUR_OF_A_KIND)
+      return
+    }
+
+    // full house
+    const hasFullHouse =
+      (faces[0] === faces[1] && faces[2] === faces[4]) ||
+      (faces[0] === faces[2] && faces[3] === faces[4])
+    if (hasFullHouse) {
+      update(payLines.FULL_HOUSE)
+      return
+    }
+
+    if (hasFlush) {
+      update(payLines.FLUSH)
+      return
+    }
+
+    if (hasStraight) {
+      update(payLines.STRAIGHT)
+      return
+    }
+
+    // 3 of a kind
+    const hasThreeOfAKind =
+      faces[0] === faces[2] || faces[1] === faces[3] || faces[2] === faces[4]
+    if (hasThreeOfAKind) {
+      update(payLines.THREE_OF_A_KIND)
+      return
+    }
+
+    // 2 pair
+    const hasTwoPair =
+      (faces[0] === faces[1] && faces[2] === faces[3]) ||
+      (faces[0] === faces[1] && faces[3] === faces[4]) ||
+      (faces[1] === faces[2] && faces[3] === faces[4])
+    if (hasTwoPair) {
+      update(payLines.TWO_PAIR)
+      return
+    }
+
+    // jacks or better
+    const hasPair = ((arr) => {
+      for (let i = 0; i < arr.length - 1; i++) {
+        if (arr[i] === arr[i + 1] && (arr[i] > 9 || arr[i] === 0)) {
+          return true
+        }
+      }
+      return false
+    })(faces)
+    if (hasPair) {
+      update(payLines.PAIR)
+    }
+  }
+
+  function finalizeHand() {
+    finalize()
+    setGameState(() => gameStates.READY)
+  }
+
+  function moveCards(cards, hand, deck, gameState) {
+    const elems = cards.map(
+      (card) => cardsRef.current[`${card.card[0]}-${card.card[1]}`]
+    )
+    let removed = 0
+    for (let i = 0; i < cards.length; i++) {
+      const timeline = new TimelineLite({
+        // eslint-disable-next-line no-loop-func
+        onComplete: () => {
+          if (removed === elems.length - 1) {
+            if (cards.length < 5) {
+              dealCard(cards, hand, deck, gameState)
+            }
+          } else {
+            removed++
+          }
+        },
+      })
+      const end = 200 * i + 20 * i
+      timeline.to(elems[i], 0.6, { x: end })
+    }
+  }
+
+  function removeCardFromHand(
+    removedCards,
+    newCards,
+    hand,
+    deck,
+    gameState
+  ) {
+    const elems = removedCards.map(
+      (card) => cardsRef.current[`${card[0]}-${card[1]}`]
+    )
+    const timeline = new TimelineLite({
+      onComplete: () => {
+        const cards = newCards.map((card) => ({ card, selected: false }))
+        setTimeout(() => moveCards(cards, hand, deck, gameState), 1)
+        setCards(() => [...cards])
+      },
+    })
+    timeline
+      .to(elems, 0.2, { rotateY: 180 })
+      .to(elems, 0.2, { x: 1180, delay: 0.1 })
+  }
+
+  function swap() {
+    const gameState = gameStates.SWAPPING
+    setGameState(() => gameState)
+    const remainingCards = cards.filter((x) => x.selected).map((x) => x.card)
+    const selectedCards = cards.filter((x) => !x.selected).map((x) => x.card)
+    if (!selectedCards.length) {
+      finalizeHand()
+    }
+
+    const tmpDead = [...dead, ...selectedCards]
+    removeCardFromHand(
+      hand.filter((oldCard) => ![...remainingCards].includes(oldCard)),
+      [...remainingCards], [...selectedCards],
+      deck,
+      gameState
+    )
+
+    setHand(() => [...remainingCards])
+    setDead(() => [...tmpDead])
+  }
+
   function deal() {
     if (gameState === gameStates.READY) {
       const gameState = gameStates.DEALING
@@ -155,9 +330,30 @@ function App() {
       setGameState(() => gameState)
       playHand()
       if (hand.length) {
+        const elems = this.cards.map(
+          (card) => cardsRef.current[`${card.card[0]}-${card.card[1]}`]
+        )
+        gsap.killTweensOf(elems)
+        gsap.to(elems, {
+          scale: 1,
+          duration: 0.2,
+          onComplete: () => {
+            const tmpDead = [...dead, ...hand]
+            const newDeck = shuffleDeck([...deck, ...tmpDead])
+
+            setDead(() => [])
+            setDeck(() => newDeck)
+            setHand(() => [])
+          },
+        })
       } else {
         dealCard([], [...hand], [...deck], gameState)
       }
+
+      return
+    }
+    if (gameState === gameStates.SWAP) {
+      swap()
     }
   }
 
