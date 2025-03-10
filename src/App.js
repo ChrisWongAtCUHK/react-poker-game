@@ -101,16 +101,15 @@ function App() {
     setPayLine(() => null)
   }
 
-  function addCardToHand(card, index, newCards) {
+  function addCardToHand(card, index, cards, hand, deck) {
     setTimeout(() => {
       const elem = { ...cardsRef.current }[`${card[0]}-${card[1]}`]
       if (elem) {
         const end = 200 * index + 20 * index
-        console.log(end)
         const timeline = new TimelineLite({
           onComplete: () => {
-            if (newCards.length < 5) {
-              dealCard()
+            if (cards.length < 5) {
+              dealCard(cards, hand, deck)
               return
             }
             if (gameState === gameStates.DEALING) {
@@ -131,22 +130,22 @@ function App() {
     }, 1)
   }
 
-  function dealCard() {
-    let tmpDeck = [...deck]
+  function dealCard(cards, hand, deck) {
+    
     if (!deck.length) {
-      tmpDeck = [...shuffleDeck(dead)]
-      setDeck(() => [...tmpDeck])
+      deck = [...shuffleDeck(dead)]
+      setDeck(() => [...deck])
       setDead(() => [])
     }
-    const card = tmpDeck.splice(0, 1)[0]
+    const card = deck.splice(0, 1)[0]
     const newHand = [...hand, card]
 
-    setHand((pre) => newHand)
-    setDeck(() => [...tmpDeck])
     const newCards = [...cards, { card, selected: false }]
-    setCards((pre) => newCards)
-
-    addCardToHand(card, newHand.length - 1, newCards)
+    addCardToHand(card, newHand.length - 1, newCards, newHand, deck)
+    
+    setHand(() => [...newHand])
+    setDeck(() => [...deck])
+    setCards(() => [...newCards])
   }
 
   function deal() {
@@ -156,7 +155,7 @@ function App() {
       playHand()
       if (hand.length) {
       } else {
-        dealCard()
+        dealCard([], [...hand], [...deck])
       }
     }
   }
@@ -295,7 +294,7 @@ function App() {
                 className={['hand__card', card.selected ? 'selected' : ''].join(
                   ' '
                 )}
-                key={`${card.card[0]}-${card.card[1]}`}
+                key={JSON.stringify(card)}
                 ref={(el) => {
                   cardsRef.current[`${card.card[0]}-${card.card[1]}`] = el
                 }}
@@ -303,7 +302,7 @@ function App() {
                 <div className='card'>
                   <div className='card__back'></div>
                   <div
-                    className={`card__front card-${card[0]}-${card[1]}`}
+                    className={`card__front card-${card.card[0]}-${card.card[1]}`}
                     rel='preload'
                   ></div>
                 </div>
