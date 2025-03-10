@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { gsap, TimelineLite } from 'gsap'
 import './App.less'
 import Credits from './components/Credits'
 function App() {
+  gsap.registerPlugin(TimelineLite);
   const payLines = {
     ROYAL_FLUSH: 'ROYAL_FLUSH',
     STRAIGHT_FLUSH: 'STRAIGHT_FLUSH',
@@ -102,8 +104,30 @@ function App() {
   function addCardToHand(card, index) {
     setTimeout(() => {
       const elem = { ...cardsRef.current }[`${card[0]}-${card[1]}`]
-      console.log(elem)
-      console.log(cardsRef.current)
+      if (elem) {
+        const end = 200 * index + 20 * index
+        console.log(end)
+        const timeline = new TimelineLite({
+          onComplete: () => {
+            if (cards.length < 5) {
+              dealCard()
+              return
+            }
+            if (gameState === gameStates.DEALING) {
+              setGameState(() => gameStates.SWAP)
+              return
+            }
+            if (gameState === gameStates.SWAPPING) {
+              // finalizeHand()
+            }
+          },
+        })
+        const startZ = 51 //Math.ceil(this.deck.length/4)*4;
+        timeline.set(elem, { x: 1180, z: startZ, rotateY: 180, opacity: 1 })
+        timeline
+          .to(elem, 0.2, { z: startZ + 150 })
+          .to(elem, 0.6, { x: end, rotateY: 0, z: 0 })
+      }
     }, 1)
   }
 
@@ -115,11 +139,13 @@ function App() {
       setDead(() => [])
     }
     const card = tmpDeck.splice(0, 1)[0]
-    setHand((pre) => [...pre, card])
+    const newHand = [...hand, card]
+
+    setHand((pre) => newHand)
     setDeck(() => [...tmpDeck])
     setCards((pre) => [...pre, { card, selected: false }])
 
-    addCardToHand(card, tmpDeck.length - 1)
+    addCardToHand(card, newHand.length - 1)
   }
 
   function deal() {
@@ -262,26 +288,31 @@ function App() {
       <div className='game__main'>
         <div className='hand'>
           {cards.map((card, i) => {
-            return (
-              <div
-                onClick={() => selectCard(i)}
-                className={['hand__card', card.selected ? 'selected' : ''].join(
-                  ' '
-                )}
-                key={`${card.card[0]}-${card.card[1]}`}
-                ref={(el) =>
-                  (cardsRef.current[`${card.card[0]}-${card.card[1]}`] = el)
-                }
-              >
-                <div className='card'>
-                  <div className='card__back'></div>
-                  <div
-                    className={`card__front card-${card[0]}-${card[1]}`}
-                    rel='preload'
-                  ></div>
+            if (cardsRef.current[`${card.card[0]}-${card.card[1]}`] === null) {
+              return (
+                <div
+                  onClick={() => selectCard(i)}
+                  className={[
+                    'hand__card',
+                    card.selected ? 'selected' : '',
+                  ].join(' ')}
+                  key={`${card.card[0]}-${card.card[1]}`}
+                  ref={(el) => {
+                    cardsRef.current[`${card.card[0]}-${card.card[1]}`] = el
+                  }}
+                >
+                  <div className='card'>
+                    <div className='card__back'></div>
+                    <div
+                      className={`card__front card-${card[0]}-${card[1]}`}
+                      rel='preload'
+                    ></div>
+                  </div>
                 </div>
-              </div>
-            )
+              )
+            } else {
+              return null
+            }
           })}
         </div>
         <div className='deck'>
