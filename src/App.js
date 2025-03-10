@@ -101,7 +101,7 @@ function App() {
     setPayLine(() => null)
   }
 
-  function addCardToHand(card, index, cards, hand, deck) {
+  function addCardToHand(card, index, cards, hand, deck, gameState) {
     setTimeout(() => {
       const elem = { ...cardsRef.current }[`${card[0]}-${card[1]}`]
       if (elem) {
@@ -109,9 +109,10 @@ function App() {
         const timeline = new TimelineLite({
           onComplete: () => {
             if (cards.length < 5) {
-              dealCard(cards, hand, deck)
+              dealCard(cards, hand, deck, gameState)
               return
             }
+
             if (gameState === gameStates.DEALING) {
               setGameState(() => gameStates.SWAP)
               return
@@ -130,8 +131,7 @@ function App() {
     }, 1)
   }
 
-  function dealCard(cards, hand, deck) {
-    
+  function dealCard(cards, hand, deck, gameState) {
     if (!deck.length) {
       deck = [...shuffleDeck(dead)]
       setDeck(() => [...deck])
@@ -141,8 +141,8 @@ function App() {
     const newHand = [...hand, card]
 
     const newCards = [...cards, { card, selected: false }]
-    addCardToHand(card, newHand.length - 1, newCards, newHand, deck)
-    
+    addCardToHand(card, newHand.length - 1, newCards, newHand, deck, gameState)
+
     setHand(() => [...newHand])
     setDeck(() => [...deck])
     setCards(() => [...newCards])
@@ -150,12 +150,13 @@ function App() {
 
   function deal() {
     if (gameState === gameStates.READY) {
+      const gameState = gameStates.DEALING
       setSelected(() => [])
-      setGameState(() => gameStates.DEALING)
+      setGameState(() => gameState)
       playHand()
       if (hand.length) {
       } else {
-        dealCard([], [...hand], [...deck])
+        dealCard([], [...hand], [...deck], gameState)
       }
     }
   }
@@ -163,9 +164,9 @@ function App() {
   function selectCard(i) {
     if (gameState === gameStates.SWAP) {
       setCards((pre) => {
-        const newCars = [...pre]
-        newCars[i].selected = !newCars[i].selected
-        return newCars
+        const newCards = [...pre]
+        newCards[i].selected = !newCards[i].selected
+        return [...newCards]
       })
     }
   }
@@ -294,7 +295,7 @@ function App() {
                 className={['hand__card', card.selected ? 'selected' : ''].join(
                   ' '
                 )}
-                key={JSON.stringify(card)}
+                key={`${card.card[0]}-${card.card[1]}`}
                 ref={(el) => {
                   cardsRef.current[`${card.card[0]}-${card.card[1]}`] = el
                 }}
