@@ -257,7 +257,7 @@ function App() {
     setGameState(() => gameStates.READY)
   }
 
-  function moveCards(cards, hand, deck, gameState) {
+  function moveCards(cards, hand, gameState) {
     const elems = cards.map(
       (card) => cardsRef.current[`${card.card[0]}-${card.card[1]}`]
     )
@@ -280,20 +280,14 @@ function App() {
     }
   }
 
-  function removeCardFromHand(
-    removedCards,
-    newCards,
-    hand,
-    deck,
-    gameState
-  ) {
+  function removeCardFromHand(removedCards, newCards, hand, gameState) {
     const elems = removedCards.map(
       (card) => cardsRef.current[`${card[0]}-${card[1]}`]
     )
     const timeline = new TimelineLite({
       onComplete: () => {
         const cards = newCards.map((card) => ({ card, selected: false }))
-        setTimeout(() => moveCards(cards, hand, deck, gameState), 1)
+        setTimeout(() => moveCards(cards, hand, gameState), 1)
         setCards(() => [...cards])
       },
     })
@@ -314,8 +308,8 @@ function App() {
     const tmpDead = [...dead, ...selectedCards]
     removeCardFromHand(
       hand.filter((oldCard) => ![...remainingCards].includes(oldCard)),
-      [...remainingCards], [...selectedCards],
-      deck,
+      [...remainingCards],
+      [...remainingCards],
       gameState
     )
 
