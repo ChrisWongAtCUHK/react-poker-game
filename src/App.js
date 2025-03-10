@@ -44,7 +44,6 @@ function App() {
   const [loaded, setLoaded] = useState(false)
   const [winnings, setWinnings] = useState(0)
   const [credits, setCredits] = useState(100)
-  const [selected, setSelected] = useState([])
   const [hand, setHand] = useState([])
   const [deck, setDeck] = useState([])
   const [dead, setDead] = useState([])
@@ -320,7 +319,6 @@ function App() {
   function deal() {
     if (gameState === gameStates.READY) {
       const gameState = gameStates.DEALING
-      setSelected(() => [])
       setGameState(() => gameState)
       playHand()
 
