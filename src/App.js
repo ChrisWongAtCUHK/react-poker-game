@@ -108,7 +108,7 @@ function App() {
         const timeline = new TimelineLite({
           onComplete: () => {
             if (cards.length < 5) {
-              dealCard(cards, hand, deck, gameState)
+              dealCard(cards, [...hand], deck, gameState)
               return
             }
 
@@ -117,7 +117,7 @@ function App() {
               return
             }
             if (gameState === gameStates.SWAPPING) {
-              finalizeHand()
+              finalizeHand([...hand])
             }
           },
         })
@@ -147,7 +147,7 @@ function App() {
     setCards(() => [...newCards])
   }
 
-  function finalize() {
+  function finalize(hand) {
     const update = (payLine) => {
       const winnings = payTable.find((p) => p.id === payLine).multiplier * bet
       setPayLine(() => payLine)
@@ -163,6 +163,7 @@ function App() {
 
     // straight
     faces.sort((a, b) => a - b)
+
     let hasStraight = faces.every(
       (val, i, arr) => i === arr.length - 1 || val + 1 === arr[i + 1]
     )
@@ -251,8 +252,8 @@ function App() {
     }
   }
 
-  function finalizeHand() {
-    finalize()
+  function finalizeHand(hand) {
+    finalize([...hand])
     setGameState(() => gameStates.READY)
   }
 
@@ -267,7 +268,8 @@ function App() {
         onComplete: () => {
           if (removed === elems.length - 1) {
             if (cards.length < 5) {
-              dealCard(cards, hand, deck, gameState)
+              console.log([...hand])
+              dealCard(cards, [...hand], deck, gameState)
             }
           } else {
             removed++
@@ -286,7 +288,7 @@ function App() {
     const timeline = new TimelineLite({
       onComplete: () => {
         const cards = newCards.map((card) => ({ card, selected: false }))
-        setTimeout(() => moveCards(cards, hand, gameState), 1)
+        setTimeout(() => moveCards(cards, [...hand], gameState), 1)
         setCards(() => [...cards])
       },
     })
@@ -301,10 +303,12 @@ function App() {
     const remainingCards = cards.filter((x) => x.selected).map((x) => x.card)
     const selectedCards = cards.filter((x) => !x.selected).map((x) => x.card)
     if (!selectedCards.length) {
-      finalizeHand()
+      finalizeHand([...hand])
     }
 
     const tmpDead = [...dead, ...selectedCards]
+    setDead(() => [...tmpDead])
+    
     removeCardFromHand(
       hand.filter((oldCard) => ![...remainingCards].includes(oldCard)),
       [...remainingCards],
@@ -312,8 +316,6 @@ function App() {
       gameState
     )
 
-    setHand(() => [...remainingCards])
-    setDead(() => [...tmpDead])
   }
 
   function deal() {
