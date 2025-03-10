@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import './App.less'
 import Credits from './components/Credits'
 function App() {
@@ -35,7 +35,7 @@ function App() {
 
   const array_5 = [1, 2, 3, 4, 5]
   const array_13 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-
+  const object_52 = {}
   const [payLine, setPayLine] = useState(null)
   const [bet, setBet] = useState(0)
   const [gameState, setGameState] = useState(gameStates.READY)
@@ -47,6 +47,13 @@ function App() {
   const [deck, setDeck] = useState([])
   const [dead, setDead] = useState([])
   const [cards, setCards] = useState([])
+
+  Array.from(Array(13).keys()).forEach((number) => {
+    Array.from(Array(4).keys()).forEach((suit) => {
+      object_52[`${number}-${suit}`] = null
+    })
+  })
+  const cardsRef = useRef(object_52)
 
   function shuffleDeck(deck) {
     const shuffleArray = (arr) =>
@@ -86,10 +93,44 @@ function App() {
     )
   }
 
+  function playHand() {
+    setCredits((pre) => pre - bet)
+    setWinnings(() => 0)
+    setPayLine(() => null)
+  }
+
+  function addCardToHand(card, index) {
+    setTimeout(() => {
+      const elem = { ...cardsRef.current }[`${card[0]}-${card[1]}`]
+      console.log(elem)
+      console.log(cardsRef.current)
+    }, 1)
+  }
+
+  function dealCard() {
+    let tmpDeck = [...deck]
+    if (!deck.length) {
+      tmpDeck = [...shuffleDeck(dead)]
+      setDeck(() => [...tmpDeck])
+      setDead(() => [])
+    }
+    const card = tmpDeck.splice(0, 1)[0]
+    setHand((pre) => [...pre, card])
+    setDeck(() => [...tmpDeck])
+    setCards((pre) => [...pre, { card, selected: false }])
+
+    addCardToHand(card, tmpDeck.length - 1)
+  }
+
   function deal() {
     if (gameState === gameStates.READY) {
       setSelected(() => [])
       setGameState(() => gameStates.DEALING)
+      playHand()
+      if (hand.length) {
+      } else {
+        dealCard()
+      }
     }
   }
 
@@ -228,7 +269,9 @@ function App() {
                   ' '
                 )}
                 key={`${card.card[0]}-${card.card[1]}`}
-                // ref={`${card.card[0]}-${card.card[1]}`}
+                ref={(el) =>
+                  (cardsRef.current[`${card.card[0]}-${card.card[1]}`] = el)
+                }
               >
                 <div className='card'>
                   <div className='card__back'></div>
@@ -242,13 +285,9 @@ function App() {
           })}
         </div>
         <div className='deck'>
-          {
-            array_13.map((key) => {
-              return (
-                <div key={key}></div>
-              )
-            })
-          }
+          {array_13.map((key) => {
+            return <div key={key}></div>
+          })}
         </div>
       </div>
     </div>
