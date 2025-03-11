@@ -285,16 +285,18 @@ function App() {
     const elems = removedCards.map(
       (card) => cardsRef.current[`${card[0]}-${card[1]}`]
     )
-    const timeline = new TimelineLite({
-      onComplete: () => {
-        const cards = newCards.map((card) => ({ card, selected: false }))
-        setTimeout(() => moveCards(cards, newCards, gameState), 1)
-        setCards(() => [...cards])
-      },
-    })
-    timeline
-      .to(elems, 0.2, { rotateY: 180 })
-      .to(elems, 0.2, { x: 1180, delay: 0.1 })
+    if (elems.length) {
+      const timeline = new TimelineLite({
+        onComplete: () => {
+          const cards = newCards.map((card) => ({ card, selected: false }))
+          setTimeout(() => moveCards(cards, newCards, gameState), 1)
+          setCards(() => [...cards])
+        },
+      })
+      timeline
+        .to(elems, 0.2, { rotateY: 180 })
+        .to(elems, 0.2, { x: 1180, delay: 0.1 })
+    }
   }
 
   function swap() {
