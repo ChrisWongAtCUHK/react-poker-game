@@ -302,6 +302,7 @@ function App() {
     setGameState(() => gameState)
     const remainingCards = cards.filter((x) => x.selected).map((x) => x.card)
     const selectedCards = cards.filter((x) => !x.selected).map((x) => x.card)
+
     if (!selectedCards.length) {
       finalizeHand([...hand])
     }
@@ -309,11 +310,32 @@ function App() {
     const tmpDead = [...dead, ...selectedCards]
     setDead(() => [...tmpDead])
 
-    removeCardFromHand(
-      hand.filter((oldCard) => !remainingCards.includes(oldCard)),
-      remainingCards,
-      gameState
-    )
+    if (!remainingCards.length) {
+      // remove all
+      const elems = cards.map(
+        (card) => cardsRef.current[`${card.card[0]}-${card.card[1]}`]
+      )
+      const timeline = new TimelineLite({
+        onComplete: () => {
+          setCards(() => [])
+          if (
+            gameState === gameStates.SWAPPING ||
+            gameState === gameStates.DEALING
+          ) {
+            dealCard([], [], deck, gameState)
+          }
+        },
+      })
+      timeline
+        .to(elems, 0.2, { rotateY: 180 })
+        .to(elems, 0.2, { x: 1180, delay: 0.1 })
+    } else {
+      removeCardFromHand(
+        hand.filter((oldCard) => !remainingCards.includes(oldCard)),
+        remainingCards,
+        gameState
+      )
+    }
   }
 
   function deal() {
